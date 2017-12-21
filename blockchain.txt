@@ -1,0 +1,18 @@
+### Document:
+
+Part1:
+File structure:
+core\blockchain.py
+core\utils.py
+core\model.py
+core\server.py
+core\sign.py
+core\transaction.py
+core\block.py
+
+client\create_txn.py
+client\query.py
+
+use_case\coin_server.py
+use_case\coin_model.py
+use_case\run.sh
