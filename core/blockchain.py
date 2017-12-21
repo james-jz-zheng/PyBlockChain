@@ -1,8 +1,7 @@
-
 import requests
 from time import time
 from urlparse import urlparse
-from blockchain.core_utils import hash, valid_chain
+from utils import hash, valid_chain
 
 
 class BlockChain:

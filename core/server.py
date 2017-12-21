@@ -4,25 +4,25 @@ from time import time
 from urlparse import urlparse
 from uuid import uuid4
 from flask import Flask, jsonify, request
-from blockchain.core_utils import hash, proof_of_work
-from blockchain.blockchain import BlockChain
-from blockchain.transaction import Transaction
-from blockchain.model import Model
+from utils import hash, proof_of_work
+from blockchain import BlockChain
+from transaction import Transaction
+from model import Model
 
 
 def validator(**kwargs):
     return True
 
 class TestTransaction(Transaction):
-    @property
-    def default(self):
+    @staticmethod
+    def default():
         return TestTransaction(
             sender="0",
             recipient=str(uuid4()).replace('-', ''),
             amount=1,
-        ).value
+        )
 
-model = Model(transation_type=type(TestTransaction), model_validator=validator)
+model = Model(transation_type=TestTransaction, model_validator=validator)
 block_chain = BlockChain(model)
 
 '''
@@ -41,7 +41,7 @@ def mine():
     last_proof = last_block['proof']
     proof = proof_of_work(last_proof)
 
-    txn = model.transation_type().default
+    txn = model.transation_type.default()
     block_chain.add_transactions([txn])
     
     previous_hash = hash(last_block)
@@ -60,7 +60,7 @@ def mine():
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
     values = request.get_json()
-    txn = Transaction(**values)
+    txn = model.transation_type(**values)
     index = block_chain.add_transactions([txn])
     
     response = {'message': 'Transaction will be added to block {0}'.format(index)}
