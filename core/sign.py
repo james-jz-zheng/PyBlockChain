@@ -8,7 +8,7 @@ import pickle
 from binascii import hexlify, unhexlify
 
 def sign(private_key, message, algorithm=DSA):
-    if private_key is str:
+    if type(private_key) is str:
         private_key = string_tokey(private_key)
     hash_code = SHA256.new(message).digest()
     if algorithm == DSA:
@@ -24,7 +24,7 @@ def sign(private_key, message, algorithm=DSA):
     return signature
     
 def verify(public_key, message, signature, algorithm=DSA):
-    if public_key is str:
+    if type(public_key) is str:
         public_key = string_tokey(public_key)
     hash_code = SHA256.new(message).digest()
     return public_key.verify(hash_code, signature)
