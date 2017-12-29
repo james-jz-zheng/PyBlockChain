@@ -95,9 +95,7 @@ def main():
     print 'public_key:', public_key
     print 'private_key:', private_key
     print 'signature:', signature
-    
-    signature = sign(private_key, public_key, 'JZZZZZ is a not good developer!')
-    print 'Verifying wrong msg:', verify(public_key, message, signature)
+    print 'Verifying wrong msg:', verify(public_key, 'JZZZZZ is not a good developer!', signature)
 
 if __name__ == "__main__":
     main()
