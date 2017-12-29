@@ -1,3 +1,5 @@
+### algo can be : DSA, ElGamal, DSA tested
+
 import Crypto.Hash.SHA256 as SHA256
 import Crypto.PublicKey.DSA as DSA
 import Crypto.PublicKey.ElGamal as ElGamal
@@ -5,10 +7,12 @@ import Crypto.Util.number as CUN
 import Crypto
 import os
 import pickle
-from binascii import hexlify, unhexlify
-import string
 
-ascd = dict(enumerate(string.ascii_letters + string.digits + '-+'))
+# string.ascii_letters + string.digits + '-+'
+CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-+'
+SEPERATOR = '_'
+
+ascd = dict(enumerate(CHARS))
 ascdr = dict(map(reversed, ascd.items()))
 
 def encode(n):
@@ -22,21 +26,23 @@ def encode(n):
 def decode(s):
     return eval('0b'+''.join([('00000'+bin(ascdr[i])[2:])[-6:] for i in 'a'*(171-len(s))+s]))
 
-encode_all = lambda l:'|'.join([encode(i) for i in l])
-decode_all = lambda s:[decode(i) for i in s.split('|')]
+def encode_all(l):
+    return SEPERATOR.join([encode(i) for i in l])
+    
+def decode_all(s):
+    return [decode(i) for i in s.split(SEPERATOR)]
 
 
 # ypqgx
 PRIVATE_KEY_FORMAT = "(iCrypto.PublicKey.DSA\n_DSAobj\np0\n(dp2\nS'y'\np3\nL{0}L\nsS'p'\np4\nL{1}L\nsS'q'\np5\nL{2}L\nsS'g'\np6\nL{3}L\nsS'x'\np7\nL{4}L\nsb."
-PUBLIC_KEY_FORMAT  = "(iCrypto.PublicKey.DSA\n_DSAobj\np0\n(dp2\nS'y'\np3\nL{0}L\nsS'p'\np4\nL{1}L\nsS'q'\np5\nL{2}L\nsS'g'\np6\nL{3}L__________________\nsb."
+PUBLIC_KEY_FORMAT  = "(iCrypto.PublicKey.DSA\n_DSAobj\np0\n(dp2\nS'y'\np3\nL{0}L\nsS'p'\np4\nL{1}L\nsS'q'\np5\nL{2}L\nsS'g'\np6\nL{3}L\nsb."
 #pickle.dumps()
 #pickle.loads(PRIVATE_KEY_FORMAT.format([ypqgx]))
 #pickle.loads(PUBLIC_KEY_FORMAT.format([ypqg]))
 
-
 def sign(private_key, public_key, message, algorithm=DSA):
-    
-    private_key = pickle.loads(PRIVATE_KEY_FORMAT.format(decode_all(public_key) + [private_key]))
+    key_str = PRIVATE_KEY_FORMAT.format(*(decode_all(public_key) + [decode(private_key)]))
+    private_key = pickle.loads(key_str)
     
     hash_code = SHA256.new(message).digest()
     if algorithm == DSA:
@@ -52,49 +58,46 @@ def sign(private_key, public_key, message, algorithm=DSA):
     return signature
     
 def verify(public_key, message, signature, algorithm=DSA):
-    public_key = pickle.loads(PUBLIC_KEY_FORMAT.format(decode_all(public_key)))
+    public_key = pickle.loads(PUBLIC_KEY_FORMAT.format(*decode_all(public_key)))
     hash_code = SHA256.new(message).digest()
     return public_key.verify(hash_code, signature)
 
 def create_key(algorithm=DSA):
     private_key = algorithm.generate(1024, os.urandom)
     public_key = private_key.publickey()
-    return key_tostring(private_key), key_tostring(public_key)
+    return key2string(private_key), key2string(public_key)
 
-def key_tostring(key):
+def key2string(key):
     k = key.key
     if key.has_private():
-        print encode(k.x)
         return encode(k.x)
     else:
-        print encode_all([k.y, k.p, k.q, k.g])
         return encode_all([k.y, k.p, k.q, k.g])
         
-def string_tokey(key_str):
-    ks = key_str.split('|')
+def string2key(key_str):
+    ks = key_str.split(SEPERATOR)
     if len(ks) == 1:
         return decode(ks[0])
     else:
         return decode(key_str)
 
-
 def hash_key(key):
-    return Crypto.Hash.SHA256.new(key_tostring(key)).hexdigest()
+    return Crypto.Hash.SHA256.new(key2string(key)).hexdigest()
 
-# algo can be : DSA, ElGamal
-algorithm = DSA
-message = 'test message'
 
-private_key, public_key = create_key()
+def main():
+    message = 'JZZZZZ is a good developer!'
 
-signature = sign(private_key, public_key, message)
-print verify(public_key, message, signature)
-print 'private_key hex:', private_key
-print 'signature:', signature
-print 'public_key hex:', public_key
+    private_key, public_key = create_key()
+    
+    signature = sign(private_key, public_key, message)
+    print 'Verifying True msg:', verify(public_key, message, signature)
+    print 'public_key:', public_key
+    print 'private_key:', private_key
+    print 'signature:', signature
+    
+    signature = sign(private_key, public_key, 'JZZZZZ is a not good developer!')
+    print 'Verifying wrong msg:', verify(public_key, message, signature)
 
-signature = sign(private_key, public_key, message+'a')
-print verify(public_key, message, signature)
-print 'private_key hex:', private_key
-print 'signature:', signature
-print 'public_key hex:', public_key
+if __name__ == "__main__":
+    main()
