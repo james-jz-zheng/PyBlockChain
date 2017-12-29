@@ -11,6 +11,7 @@ import pickle
 # string.ascii_letters + string.digits + '-+'
 CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-+'
 SEPERATOR = '_'
+KEYBIT = 1024
 
 ascd = dict(enumerate(CHARS))
 ascdr = dict(map(reversed, ascd.items()))
@@ -24,7 +25,7 @@ def encode(n):
     return ''.join(l)
     
 def decode(s):
-    return eval('0b'+''.join([('00000'+bin(ascdr[i])[2:])[-6:] for i in 'a'*(171-len(s))+s]))
+    return eval('0b'+''.join([('00000'+bin(ascdr[i])[2:])[-6:] for i in 'a'*((KEYBIT+5)/6-len(s))+s]))
 
 def encode_all(l):
     return SEPERATOR.join([encode(i) for i in l])
@@ -55,15 +56,15 @@ def sign(private_key, public_key, message, algorithm=DSA):
     else:
         raise 'Error: only DSA/ElGamal are supported!'
     signature = private_key.sign(hash_code, K)
-    return signature
+    return encode_all(signature)
     
 def verify(public_key, message, signature, algorithm=DSA):
     public_key = pickle.loads(PUBLIC_KEY_FORMAT.format(*decode_all(public_key)))
     hash_code = SHA256.new(message).digest()
-    return public_key.verify(hash_code, signature)
+    return public_key.verify(hash_code, decode_all(signature))
 
 def create_key(algorithm=DSA):
-    private_key = algorithm.generate(1024, os.urandom)
+    private_key = algorithm.generate(KEYBIT, os.urandom)
     public_key = private_key.publickey()
     return key2string(private_key), key2string(public_key)
 
