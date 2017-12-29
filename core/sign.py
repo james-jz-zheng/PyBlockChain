@@ -25,12 +25,19 @@ def decode(s):
 encode_all = lambda l:'|'.join([encode(i) for i in l])
 decode_all = lambda s:[decode(i) for i in s.split('|')]
 
+
+# ypqgx
 PRIVATE_KEY_FORMAT = "(iCrypto.PublicKey.DSA\n_DSAobj\np0\n(dp2\nS'y'\np3\nL{0}L\nsS'p'\np4\nL{1}L\nsS'q'\np5\nL{2}L\nsS'g'\np6\nL{3}L\nsS'x'\np7\nL{4}L\nsb."
 PUBLIC_KEY_FORMAT  = "(iCrypto.PublicKey.DSA\n_DSAobj\np0\n(dp2\nS'y'\np3\nL{0}L\nsS'p'\np4\nL{1}L\nsS'q'\np5\nL{2}L\nsS'g'\np6\nL{3}L__________________\nsb."
+#pickle.dumps()
+#pickle.loads(PRIVATE_KEY_FORMAT.format([ypqgx]))
+#pickle.loads(PUBLIC_KEY_FORMAT.format([ypqg]))
 
-def sign(private_key, message, algorithm=DSA):
-    if type(private_key) is str:
-        private_key = string_tokey(private_key)
+
+def sign(private_key, public_key, message, algorithm=DSA):
+    
+    private_key = pickle.loads(PRIVATE_KEY_FORMAT.format(decode_all(public_key) + [private_key]))
+    
     hash_code = SHA256.new(message).digest()
     if algorithm == DSA:
         K = CUN.getRandomNumber(128, os.urandom)
@@ -45,8 +52,7 @@ def sign(private_key, message, algorithm=DSA):
     return signature
     
 def verify(public_key, message, signature, algorithm=DSA):
-    if type(public_key) is str:
-        public_key = string_tokey(public_key)
+    public_key = pickle.loads(PUBLIC_KEY_FORMAT.format(decode_all(public_key)))
     hash_code = SHA256.new(message).digest()
     return public_key.verify(hash_code, signature)
 
@@ -56,11 +62,21 @@ def create_key(algorithm=DSA):
     return key_tostring(private_key), key_tostring(public_key)
 
 def key_tostring(key):
-    print 'KEY: ' + str(pickle.dumps(key))
-    return hexlify(pickle.dumps(key))
-
+    k = key.key
+    if key.has_private():
+        print encode(k.x)
+        return encode(k.x)
+    else:
+        print encode_all([k.y, k.p, k.q, k.g])
+        return encode_all([k.y, k.p, k.q, k.g])
+        
 def string_tokey(key_str):
-    return pickle.loads(unhexlify(key_str))
+    ks = key_str.split('|')
+    if len(ks) == 1:
+        return decode(ks[0])
+    else:
+        return decode(key_str)
+
 
 def hash_key(key):
     return Crypto.Hash.SHA256.new(key_tostring(key)).hexdigest()
@@ -71,13 +87,13 @@ message = 'test message'
 
 private_key, public_key = create_key()
 
-signature = sign(private_key, message)
+signature = sign(private_key, public_key, message)
 print verify(public_key, message, signature)
 print 'private_key hex:', private_key
 print 'signature:', signature
 print 'public_key hex:', public_key
 
-signature = sign(private_key, message+'a')
+signature = sign(private_key, public_key, message+'a')
 print verify(public_key, message, signature)
 print 'private_key hex:', private_key
 print 'signature:', signature
