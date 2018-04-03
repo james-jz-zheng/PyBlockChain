@@ -18,7 +18,7 @@ ascdr = dict(map(reversed, ascd.items()))
 
 def encode(n):
     bn, bl = bin(n)[2:], n.bit_length()
-    nchars = (bl + 5) / 6
+    nchars = int((bl + 5) / 6)
     n_extra0 = nchars * 6 - bl
     zeroed_n = '0'*n_extra0 + bn
     l = [ascd[eval('0b'+zeroed_n[i*6:(i+1)*6])] for i in range(nchars)]
@@ -66,7 +66,7 @@ def verify(public_key, message, signature, algorithm=DSA):
 def create_key(algorithm=DSA):
     private_key = algorithm.generate(KEYBIT, os.urandom)
     public_key = private_key.publickey()
-    return key2string(private_key), key2string(public_key)
+    return key2string(private_key), key2string(public_key), hash_encode(public_key)
 
 def key2string(key):
     k = key.key
@@ -82,6 +82,9 @@ def string2key(key_str):
     else:
         return decode(key_str)
 
+def hash_encode(public_key_str):
+    return encode(eval('0x'+hash_key(public_key_str)))
+
 def hash_key(key):
     return Crypto.Hash.SHA256.new(key2string(key)).hexdigest()
 
@@ -89,14 +92,14 @@ def hash_key(key):
 def main():
     message = 'JZZZZZ is a good developer!'
 
-    private_key, public_key = create_key()
+    private_key, public_key, _ = create_key()
     
     signature = sign(private_key, public_key, message)
-    print 'Verifying True msg:', verify(public_key, message, signature)
-    print 'public_key:', public_key
-    print 'private_key:', private_key
-    print 'signature:', signature
-    print 'Verifying wrong msg:', verify(public_key, 'JZZZZZ is not a good developer!', signature)
+    print('Verifying True msg:', verify(public_key, message, signature))
+    print('public_key:', public_key)
+    print('private_key:', private_key)
+    print('signature:', signature)
+    print('Verifying wrong msg:', verify(public_key, 'JZZZZZ is not a good developer!', signature))
 
 if __name__ == "__main__":
     main()
