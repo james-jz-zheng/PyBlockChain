@@ -1,4 +1,5 @@
 from sign import sign, verify
+from random import randint
 import urllib2
 import pickle
 import os
@@ -44,9 +45,14 @@ def chain_verify(input_data):
             return False
     return True
 
+@app.route('/pay_to/<coin>/<next_pubk>/<owner_pubk>/<owner_prik>')
 def pay_to(coin, next_pubk, owner_pubk, owner_prik):
     msg = '{}${}'.format(coin, next_pubk)
-    return msg + '$' + sign(owner_prik, ADDRESS_DICT[owner_pubk], msg)
+    new_coin = msg + '$' + sign(owner_prik, ADDRESS_DICT[owner_pubk], msg)
+    url = THIS_NODE + r'/input/' + new_coin
+    res = urllib2.urlopen(url)
+    ret = res.read()
+    return ret + ' : ' +new_coin
 
 def update(coin_id, input_data):
     global MEMORY
@@ -75,7 +81,12 @@ def start_chain():
     load()
 
 def init_coin():
-    coins = ['1${}${}$'.format(sn, first_owner_pubkh) + sign(gold_prik, gold_pubk, '1${}${}'.format(sn, first_owner_pubkh)) for sn in range(10)]
+    coins = []
+    for sn in range(10):
+        msg = '{}${}${}'.format(randint(1,10),sn, first_owner_pubkh)
+        coin = msg + '$' + sign(gold_prik, gold_pubk, msg)
+        coins.append(coin)
+
     for c in coins:
         print c
         process(c)
@@ -94,27 +105,29 @@ def hello():
 
 @app.route('/input/<data>')
 def process(data):
-    global  MEMORY
+    global MEMORY
     coin_id = '$'.join(data.split('$')[:2])
     if not chain_verify(data):
+        return 'False Transaction!'
+
+    if coin_id in MEMORY.keys():
         update(coin_id, data)
+        return 'updated'
     else:
         MEMORY[coin_id] = data
-    return 'success'
+        return 'added'
 
 
 @app.route('/query/<account>')
 def query(account):
     global MEMORY
-    try:
-        balance = []
-        for k,v in MEMORY.items():
-            if str(v.split('$')[-2]) == str(account):
-                balance .append(k)
-        amount = sum([int(x.split('$')[0]) for x in balance])
-        return amount
-    except:
-        return ''
+    balance = []
+    for k,v in MEMORY.items():
+        if str(v.split('$')[-2]) == str(account):
+            print MEMORY, balance, k
+            balance.append(k)
+    amount = sum([int(x.split('$')[0]) for x in balance])
+    return 'Your account has {}$ in total!'.format(amount)
 
 @app.route('/coin/<coin_id>')
 def coin(coin_id):
@@ -128,3 +141,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
